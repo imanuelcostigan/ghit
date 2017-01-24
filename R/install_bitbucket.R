@@ -1,16 +1,57 @@
 #' @title Install R package from Bitbucket
-#' @description \code{install_bitbucket} allows users to install R packages hosted on Bitbucket without needing to install or load the heavy dependencies required by devtools. ghit provides a drop-in replacement that provides (almost) identical functionality to \code{devtools::install_bitbucket()}.
-#' @param repo A character vector naming one or more GitHub repository containing an R package to install (e.g., \dQuote{imanuelcostigan/devtest}), or optionally a branch (\dQuote{imanuelcostigan/devtest[dev]}), a reference (\dQuote{imanuelcostigan/devtest@309fa0a}), tag (\dQuote{imanuelcostigan/devtest@v0.1}), or subdirectory (\dQuote{imanuelcostigan/samplepackage/R}). These arguments can be placed in any order and in any combination (e.g., \dQuote{imanuelcostigan/devtest[master]@abc123/R}). As the use of pull request (PR) references are not supported by Bitbucket, you should install from the PR's source repository and branch.
-#' @param host A character string naming a host, to enable installation of enterprise-hosted Bitbucket Server packages.
-#' @param credentials}{An argument passed to the \code{credentials} argument to \code{\link[git2r]{clone}}. See \code{\link[git2r]{cred_user_pass}} or \code{\link[git2r]{cred_ssh_key}}.
-#' @param build_args A character string used to control the package build, passed to \code{R CMD build}.
-#' @param build_vignettes A logical specifying whether to build package vignettes, passed to \code{R CMD build}. Can be slow. Note: The default is \code{TRUE}, unlike in \code{devtools::install_github()}.
-#' @param uninstall A logical specifying whether to uninstall previous installations using \code{\link[utils]{remove.packages}} before attempting install. This is useful for installing an older version of a package than the one currently installed.
-#' @param verbose A logical specifying whether to print details of package building and installation.
-#' @param repos A character vector specifying one or more URLs for CRAN-like repositories from which package dependencies might be installed. By default, value is taken from \code{options("repos")} or set to the CRAN cloud repository.
-#' @param type A character vector passed to the \code{type} argument of \code{\link[utils]{install.packages}}.
-#' @param dependencies A character vector specifying which dependencies to install (of \dQuote{Depends}, \dQuote{Imports}, \dQuote{Suggests}, etc.).
-#' @param \dots Additional arguments to control installation of package, passed to \code{\link[utils]{install.packages}}.
+#' @description \code{install_bitbucket} allows users to install R packages
+#'   hosted on Bitbucket without needing to install or load the heavy
+#'   dependencies required by devtools. ghit provides a drop-in replacement that
+#'   provides (almost) identical functionality to
+#'   \code{devtools::install_bitbucket()}. The \code{install_bitbucket_server}
+#'   interface provides some convenient default values for \code{host} and
+#'   \code{credentials} for corporate users.
+#' @param repo A character vector naming one or more GitHub repository
+#'   containing an R package to install (e.g.,
+#'   \dQuote{imanuelcostigan/devtest}), or optionally a branch
+#'   (\dQuote{imanuelcostigan/devtest[dev]}), a reference
+#'   (\dQuote{imanuelcostigan/devtest@309fa0a}), tag
+#'   (\dQuote{imanuelcostigan/devtest@v0.1}), or subdirectory
+#'   (\dQuote{imanuelcostigan/samplepackage/R}). These arguments can be placed
+#'   in any order and in any combination (e.g.,
+#'   \dQuote{imanuelcostigan/devtest[master]@abc123/R}). As the use of pull
+#'   request (PR) references are not supported by Bitbucket, you should install
+#'   from the PR's source repository and branch.
+#' @param host A character string naming a host. This defaults to
+#'   \code{bitbucket.org} when using the \code{install_bitbucket()} interface
+#'   and can be set other values to enable installation of Bitbucket Server
+#'   packages. However, the \code{install_bitbucket_server()} provides a more
+#'   convenient default value sourced from the \code{BITBUCKET_HOST} environment
+#'   variable by default.
+#' @param credentials An argument passed to the \code{credentials} argument to
+#'   \code{\link[git2r]{fetch}}. See \code{\link[git2r]{cred_user_pass}} or
+#'   \code{\link[git2r]{cred_ssh_key}}. This defaults to: using the use the SSH
+#'   key via \code{\link[git2r]{cred_ssh_key}} when using the
+#'   \code{install_bitbucket()} interface; and supplying to
+#'   \code{\link[git2r]{cred_user_pass}} the username and password values stored
+#'   in the \code{USERNAME} and \code{BITBUCKET_PASS} environment variables when
+#'   using \code{install_bitbucket_server()} interface.
+#' @param build_args A character string used to control the package build,
+#'   passed to \code{R CMD build}.
+#' @param build_vignettes A logical specifying whether to build package
+#'   vignettes, passed to \code{R CMD build}. Can be slow. Note: The default is
+#'   \code{TRUE}, unlike in \code{devtools::install_github()}.
+#' @param uninstall A logical specifying whether to uninstall previous
+#'   installations using \code{\link[utils]{remove.packages}} before attempting
+#'   install. This is useful for installing an older version of a package than
+#'   the one currently installed.
+#' @param verbose A logical specifying whether to print details of package
+#'   building and installation.
+#' @param repos A character vector specifying one or more URLs for CRAN-like
+#'   repositories from which package dependencies might be installed. By
+#'   default, value is taken from \code{options("repos")} or set to the CRAN
+#'   cloud repository.
+#' @param type A character vector passed to the \code{type} argument of
+#'   \code{\link[utils]{install.packages}}.
+#' @param dependencies A character vector specifying which dependencies to
+#'   install (of \dQuote{Depends}, \dQuote{Imports}, \dQuote{Suggests}, etc.).
+#' @param \dots Additional arguments to control installation of package, passed
+#'   to \code{\link[utils]{install.packages}}.
 #' @return A named character vector of R package versions installed.
 #' @author Imanuel Costigan
 #' @examples
@@ -20,20 +61,24 @@
 #' # install a single package. Multiple package install is also supported.
 #' install_bitbucket("imanuelcostigan/devtest", lib = tmp)
 #'
+#' # Install from Bitbucket Server
+#' install_bitbucket_server("projectname/reponame")
+#'
 #' # cleanup
 #' unlink(tmp, recursive = TRUE)
 #' }
 #' @importFrom git2r init clone config commits remote_ls
-#' @importFrom utils install.packages installed.packages remove.packages packageVersion compareVersion capture.output
+#' @importFrom utils install.packages installed.packages remove.packages
+#'   packageVersion compareVersion capture.output
 #' @importFrom tools write_PACKAGES
+#' @aliases install_bitbucket_server
 #' @export
-
 install_bitbucket <- function(repo, host = "bitbucket.org", credentials = NULL,
     build_args = NULL, build_vignettes = TRUE, uninstall = FALSE,
     verbose = FALSE,
     repos = NULL,
     type = if (.Platform[["pkgType"]] %in% "win.binary") "both" else "source",
-    dependencies = c("Depends", "Imports"), ...) {
+    dependencies = NA, ...) {
 
     opts <- list(...)
 
@@ -47,8 +92,8 @@ install_bitbucket <- function(repo, host = "bitbucket.org", credentials = NULL,
         }
     }
 
-    # setup drat
-    repodir <- setup_repodir()
+    # setup drat & configure `repos`
+    repos <- make_repos(repos = repos)
 
     # download and build packages
     to_install <- sapply(unique(repo), function(x) {
@@ -62,26 +107,17 @@ install_bitbucket <- function(repo, host = "bitbucket.org", credentials = NULL,
         description <- read.dcf(file.path(d, "DESCRIPTION"))
         p$pkgname <- unname(description[1, "Package"])
         vers <- unname(description[1,"Version"])
-        if ("lib" %in% names(opts)) {
-            if (p$pkgname %in% installed.packages(lib.loc = c(.libPaths(), opts$lib))[, "Package"]) {
-                curr <- try(as.character(utils::packageVersion(p$pkgname, lib.loc = c(.libPaths(), opts$lib))), silent = TRUE)
-            } else {
-                curr <- NA_character_
-            }
-        } else {
-            if (p$pkgname %in% installed.packages()[, "Package"]) {
-                curr <- try(as.character(utils::packageVersion(p$pkgname)), silent = TRUE)
-            } else {
-                curr <- NA_character_
+        check_pkg_version(p, vers = vers, lib = if ("lib" %in% names(opts)) c(.libPaths(), opts$lib) else .libPaths())
+        
+        # install Suggests dependencies, non-recursively
+        if ("Suggests" %in% colnames(description)) {
+            suggests <- strsplit(gsub("[[:space:]]+", "", description[1, "Suggests"]), ",")[[1L]]
+            if (isTRUE(build_vignettes) && !is.null(suggests) && suggests != "") {
+                preinstall_suggests(suggests = suggests, p = p, type = type, repos = repos, 
+                                    dependencies = dependencies, verbose = verbose, ...)
             }
         }
-        if (!inherits(curr, "try-error") && !is.na(curr)) {
-            com <- utils::compareVersion(vers, curr)
-            ghitmsg(com < 0,
-                warning(sprintf("Package %s older (%s) than currently installed version (%s).", p$pkgname, vers, curr))
-            )
-        }
-
+        
         # build package and insert into drat
         build_and_insert(p$pkgname, d, vers, build_args, verbose = verbose)
         return(p$pkgname)
@@ -93,45 +129,7 @@ install_bitbucket <- function(repo, host = "bitbucket.org", credentials = NULL,
     }
 
     # install packages from drat and dependencies from CRAN
-    loaded <- to_install[to_install %in% loadedNamespaces()]
-    if (length(loaded)) {
-        ghitmsg(verbose, message(sprintf("Unloading packages %s...", paste0(loaded, collapse = ", "))))
-        try(sapply(loaded, unloadNamespace))
-    }
-    ghitmsg(verbose,
-        message(sprintf("Installing packages%s...",
-            if (length(dependencies)) paste0(" and ", paste(dependencies, collapse = ", ")) else ""))
-    )
-    if (is.null(repos)) {
-        tmp_repos <- getOption("repos")
-        if ("@CRAN@"  %in% tmp_repos) {
-            tmp_repos["CRAN"] <- "https://cloud.r-project.org"
-        }
-        repos <- tmp_repos
-        rm(tmp_repos)
-    }
-    repos <- c("TemporaryRepo" = repodir, repos)
-    utils::install.packages(to_install, type = type,
-        repos = repos,
-        dependencies = dependencies,
-        verbose = verbose,
-        quiet = !verbose,
-        ...)
-
-    v_out <- sapply(to_install, function(x) {
-        if ("lib" %in% names(opts)) {
-            z <- try(as.character(utils::packageVersion(x, lib.loc = c(opts$lib,.libPaths()))), silent = TRUE)
-        } else {
-            z <- try(as.character(utils::packageVersion(x)), silent = TRUE)
-        }
-        if (inherits(z, "try-error")) NA_character_ else z
-    })
-    if (length(loaded)) {
-        ghitmsg(verbose, message(sprintf("reloading packages %s...", paste0(loaded, collapse = ", "))) )
-        sapply(loaded, requireNamespace)
-    }
-
-    return(v_out)
+    do_install(to_install, type = type, repos = repos, dependencies = dependencies, opts = opts, verbose = verbose, ...)
 }
 
 
@@ -204,4 +202,26 @@ add_bb_metadata <- function(pkgdir, p, verbose = FALSE) {
     dcf <- cbind(dcf, metamat)
     write.dcf(dcf, file = desc)
     return(TRUE)
+}
+
+#' @rdname install_bitbucket
+#' @export
+install_bitbucket_server <- function(repo,
+  host = Sys.getenv("BITBUCKET_HOST"), credentials = bitbucket_cred(),
+  build_args = NULL, build_vignettes = TRUE, uninstall = FALSE,
+  verbose = FALSE, repos = NULL,
+  type = if (.Platform[["pkgType"]] %in% "win.binary")
+    "both"
+  else
+    "source",
+  dependencies = c("Depends", "Imports"), ...) {
+
+  install_bitbucket(repo, host, credentials, build_args, build_vignettes,
+      uninstall, verbose, repos, type, dependencies, ...)
+
+}
+
+bitbucket_cred <- function(user_var = "USERNAME", pass_var = "BITBUCKET_PASS") {
+  git2r::cred_user_pass(username = Sys.getenv(user_var),
+      password = Sys.getenv(pass_var))
 }
